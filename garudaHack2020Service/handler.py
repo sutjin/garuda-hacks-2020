@@ -1,23 +1,11 @@
+import os
 import json
 import boto3
 import datetime
+from elasticsearch import Elasticsearch
 
+es = Elasticsearch(['HOST'])
 dynamodb = boto3.client('dynamodb')
-
-
-def hello(event, context):
-    body = {
-        "message": "Go Serverless v1.0! Your function executed successfully!",
-        "input": event
-    }
-
-    response = {
-        "statusCode": 200,
-        "body": json.dumps(body)
-    }
-
-    return response
-
 
 
 """
@@ -32,27 +20,18 @@ def submitProfile(event, context):
         'selected_type': {
             'SS': event_body['selected_type']
         },
-        'posts': {
-            'L': []    
-        },
         'requested_at': {
             'S': str(datetime.datetime.now())
         }
     }
 
-    """
-        Potential new fields:
-            location (as mapping)
-            tags (from ML)
-    """
-
     try:
         res = dynamodb.put_item(
-                table_name='', # TODO: add table name
+                table_name=os.environ['DYNAMO_TABLE_NAME'],
                 Item=dynamo_item,
                 ConditionExpression='attribute_not_exists(username)'
                 )
-    except: # TODO: enhance cancel for different response
+    except: # V2: enhance cancel for different response
         response = {
             "statusCode": 502,
             "body": {
@@ -78,7 +57,7 @@ def getProfile(event, context):
 
     try:
         res_dynamo = dynamodb.get_item(
-            table_name='', # TODO: add table name
+            table_name=os.environ['DYNAMO_TABLE_NAME'],
             key={
                     'username': {
                         'S': req_username
@@ -111,14 +90,30 @@ def getProfile(event, context):
     Trigger ElasticSearch to find result
 """
 def searchForProfile(event, context):
-    # TODO: potentially we do query call instead
     req_username = json.loads(event['body'])
 
-    # TODO: call ES to query for result.
+    try:
+        es_body = {
+            "query": {
+                "match_all": {} # TODO: update search
+            }    
+        }
+        res = es.search(index="TEST-INDEX", body=es_body)
 
-    response = {
-        "statusCode": 200,
-        "body": json.dumps({})
-    }
+        res_body = []
+        for hit in res['hits']['hits']:
+            res_body.append(hit)
+    except:
+        response = {
+            "statusCode": 502,
+            "body": {
+                "message": "Something went wrong on our end"    
+            }
+        }
+    else:
+        response = {
+            "statusCode": 200,
+            "body": json.dumps(res_body)
+        }
 
     return response

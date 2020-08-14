@@ -1,1 +1,3 @@
 boto3==1.14.42
+elasticsearch==7.8.1
+git+git://github.com/sutjin/instagram-crawler.git@master#egg=instagram-crawler

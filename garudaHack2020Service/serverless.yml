@@ -1,13 +1,90 @@
 service: garudahack2020service
 
 provider:
-  name: aws
-  runtime: python3.6 # TODO: check lambda actual version
+    name: aws
+    runtime: python3.7
+    memorySize: 128
+    stage: dev
+    region: us-west-2
+    environment:
+        DYNAMO_TABLE_NAME: !ref GarudaHack2020Table
+    iamRoleStatements:
+        - Effect: "Allow"
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:DescribeStream
+            - dynamodb:GetRecords
+            - dynamodb:GetShardIterator
+            - dynamodb:ListStreams
+          Resource:
+            Fn::GetAtt:
+                - GarudaHack2020Table
+                - Arn
+    stackTags:
+        APP: 'garuda_hacks_2020'
 
 
 functions:
-  hello:
-    handler: handler.hello
+    createNewProfile:
+        handler: handler.submitProfile
+        events:
+            - http:
+                path: profile
+                method: post
+                cors:
+                    origins:
+                        - *
+    getProfile:
+        handler: handler.getProfile
+        events:
+            - http:
+                path: profile
+                method: get
+                cors:
+                    origins:
+                        - *
+    searchProfile:
+        handler: handler.searchForProfile
+        events:
+            - http:
+                path: search
+                method: post
+                cors:
+                    origins:
+                        - *
+    crawlProfile:
+        handler: hooks.crawlUserProfile
+
+resources:
+    Resources:
+        GarudaHack2020Table:
+            Type: AWS::DynamoDB::Table
+            Properties:
+            TableName: garuda_hacks_2020_table
+            AttributeDefinitions:
+              - AttributeName: username
+                AttributeType: S
+            KeySchema:
+              - AttributeName: username
+                KeyType: HASH
+            ProvisionedThroughput:
+                ReadCapacityUnits: 1
+                WriteCapacityUnits: 1
+            StreamSpecification:
+                StreamViewType: NEW_IMAGE
+        GarudaHack2020TableStream:
+            Type: AWS::Lambda::EventSourceMapping
+            Properties:
+            BatchSize: 1 #trigger one lambda per document
+            Enabled: True
+            EventSourceArn: #trigger event from the data table
+                Fn::GetAtt: [ GarudaHack2020Table , StreamArn ]
+            FunctionName: #trigger the echo function previously defined
+                Fn::GetAtt: [ crawlProfile , Arn ]
+            StartingPosition: LATEST #always start at the tail of the stream
 
 plugins:
 - serverless-offline
