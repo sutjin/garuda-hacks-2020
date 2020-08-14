@@ -8,3 +8,6 @@ provider:
 functions:
   hello:
     handler: handler.hello
+
+plugins:
+- serverless-offline
