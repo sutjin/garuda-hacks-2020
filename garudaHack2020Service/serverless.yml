@@ -1,0 +1,10 @@
+service: garudahack2020service
+
+provider:
+  name: aws
+  runtime: python3.6 # TODO: check lambda actual version
+
+
+functions:
+  hello:
+    handler: handler.hello
