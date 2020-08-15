@@ -3,8 +3,9 @@ import json
 import boto3
 import datetime
 from elasticsearch import Elasticsearch
+from dynamodb_json import json_util as dynamo_json
 
-es = Elasticsearch(['HOST'])
+es = Elasticsearch([os.environ['ES_DOMAIN']])
 dynamodb = boto3.client('dynamodb')
 
 
@@ -13,17 +14,11 @@ dynamodb = boto3.client('dynamodb')
 """
 def submitProfile(event, context):
     event_body = json.loads(event['body'])
-    dynamo_item = {
-        'username': {
-            'S': event_body['username']
-        },
-        'selected_type': {
-            'SS': event_body['selected_type']
-        },
-        'requested_at': {
-            'S': str(datetime.datetime.now())
-        }
-    }
+    dynamo_item = dynamo_json.dumps({
+            'username': event_body['username'],
+            'selected_type': event_body['selected_type'],
+            'requested_at': str(datetime.datetime.now())
+        })
 
     try:
         res = dynamodb.put_item(
@@ -52,8 +47,7 @@ def submitProfile(event, context):
     Get user profile based on Id
 """
 def getProfile(event, context):
-    # TODO: potentially we do query call instead
-    req_username = json.loads(event['body'])
+    req_username = json.loads(event['queryStringParameters']['username'])
 
     try:
         res_dynamo = dynamodb.get_item(
@@ -64,12 +58,8 @@ def getProfile(event, context):
                     }
                 }
             )
-        # TODO: convert to response
-        res_body = {
-            'username': '',
-            'selected_type': [],
-            'posts': []
-        }
+
+        res_body = dynamo_json.loads(res_dynamo['Item'])
     except:
         response = {
             "statusCode": 502,
@@ -98,7 +88,7 @@ def searchForProfile(event, context):
                 "match_all": {} # TODO: update search
             }    
         }
-        res = es.search(index="TEST-INDEX", body=es_body)
+        res = es.search(index="garuda_hacks_2020", body=es_body)
 
         res_body = []
         for hit in res['hits']['hits']:

@@ -8,6 +8,7 @@ provider:
     region: us-west-2
     environment:
         DYNAMO_TABLE_NAME: !ref GarudaHack2020Table
+        ES_DOMAIN: https://9dhfzwk724:49bt6kh1nt@custom-kicks-sandbox-1191858573.us-west-2.bonsaisearch.net:443
     iamRoleStatements:
         - Effect: "Allow"
           Action:

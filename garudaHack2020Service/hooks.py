@@ -1,6 +1,5 @@
 import json
 import boto3
-from xml.dom import minidom
 from elasticsearch import Elasticsearch
 from inscrawler import InsCrawler
 from inscrawler.settings import settings
@@ -8,6 +7,7 @@ from inscrawler.settings import settings
 ins_crawler = InsCrawler()
 dynamodb = boto3.client('dynamodb')
 es = Elasticsearch(['HOST'])
+
 
 """
     Triggered when DynamoHook exist and crawl website
@@ -71,20 +71,23 @@ def updateDataResource(event, context):
     }
 
 
+"""
+    Ideally we create an XML and upload it to CDN.
+    but since we are using bubble.io (free), capability is not available
+"""
 def _generateSiteMapXML(payload):
     # TODO: complete function (https://pymotw.com/2/xml/etree/ElementTree/create.html)
-    root = minidom.Document()
-
-    xml = root.create('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" ' +
-                    'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' + 
-                    'xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 ' +
-                    'http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd"></urlset>')
-
     """
-        sitemap.root()
-                    .ele('url')
-                        .ele('loc').txt('http://customkicks.nabilsutjipto.me/artist/' + profile.username).up()
-                        .ele('lastmod').txt(new Date().toISOString()).up()
-                    .up()
+        <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+            xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 
+            http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+            
+            <url>
+                <loc>OUR_WEBSITE_URL/username</loc>
+                <lastmod>todays_date</lastmod>
+            </url>
+        
+        </urlset>
     """
-    print("nothing")
+    print("do nothing for now")
