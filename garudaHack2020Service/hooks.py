@@ -1,12 +1,14 @@
 import json
 import boto3
+import os
 from elasticsearch import Elasticsearch
 from inscrawler import InsCrawler
 from inscrawler.settings import settings
+from dynamodb_json import json_util as dynamo_json
 
 ins_crawler = InsCrawler()
 dynamodb = boto3.client('dynamodb')
-es = Elasticsearch(['HOST'])
+es = Elasticsearch([os.environ['ES_DOMAIN']])
 
 
 """
@@ -14,8 +16,9 @@ es = Elasticsearch(['HOST'])
 """
 def crawlUserProfile(event, context):
     event_details = json.loads(json.dumps(event['Records'][0]['dynamodb']))
-
-    username = event_details['NewImage']['username']['S']
+    
+    converted_table = dynamo_json.loads(event_details['NewImage'])
+    username = converted_table['username']
     
     crawled_username = ins_crawler.get_user_profile(username)
     setattr(settings, "fetch_details", True)
@@ -34,11 +37,17 @@ def crawlUserProfile(event, context):
             locations.append(post["location"])
 
     payload = {
+        "username": username,
+        "selected_type": converted_table['selected_type'],
         "name": crawled_username['name'],
         "desc": crawled_username['desc'],
         "posts": captions,
         "locations": locations
     }
+
+    # Ideally we want this as another lambda to maintain single responsibility
+    # but no time to mess with AWS permissions
+    updateDataResource(payload)
 
     return {
         "message": "success"    
@@ -48,21 +57,28 @@ def crawlUserProfile(event, context):
 """
     Update resources with data
 """
-def updateDataResource(event, context):
+def updateDataResource(payload):
+
+    dynamo_req = dynamo_json.dumps(payload)
 
     res_dynamo = dynamodb.update_item(
             table_name=os.environ['DYNAMO_TABLE_NAME'],
             key={
                     'username': {
-                        'S': req_username
+                        'S': payload['username']
                     }
                 },
-            AttributeUpdates={} # TODO: convert event to attribute update
+            AttributeUpdates={
+                    'name': dynamo_req['name'],
+                    'desc': dynamo_req['desc'],
+                    'posts': dynamo_req['posts'],
+                    'locations': dynamo_req['locations']
+                }
             )
 
-    res_es = es.index(index="test-index", 
-                      id=1, # get from event
-                      body=doc) # generate from doc
+    res_es = es.index(index="garuda_hacks_2020", 
+                      id=payload['username'],
+                      body=payload)
 
     _generateSiteMapXML(payload)
 
@@ -74,9 +90,11 @@ def updateDataResource(event, context):
 """
     Ideally we create an XML and upload it to CDN.
     but since we are using bubble.io (free), capability is not available
+
+    another option would be updating database and have a job that would generate new xml.
 """
 def _generateSiteMapXML(payload):
-    # TODO: complete function (https://pymotw.com/2/xml/etree/ElementTree/create.html)
+    # V2: complete function (https://pymotw.com/2/xml/etree/ElementTree/create.html)
     """
         <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
