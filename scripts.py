@@ -6,7 +6,7 @@ from elasticsearch import Elasticsearch
 
 
 def generateESIndex():
-    es = Elasticsearch([os.environ['ES_DOMAIN']])
+    es = Elasticsearch(['https://9dhfzwk724:49bt6kh1nt@custom-kicks-sandbox-1191858573.us-west-2.bonsaisearch.net:443'])
 
     # we are doing a plain creation for now
     # ideally we optimized mapping based on ES types

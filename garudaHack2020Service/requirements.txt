@@ -1,4 +1,9 @@
 boto3==1.14.42
 elasticsearch==7.8.1
 git+git://github.com/sutjin/instagram-crawler.git@master#egg=instagram-crawler
+future==0.16.0
+selenium==3.141.0
+tqdm==4.23.4
+pre-commit==1.16.1
+black==19.3b0
 dynamodb-json==1.3
