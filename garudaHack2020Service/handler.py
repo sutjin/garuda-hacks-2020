@@ -22,21 +22,30 @@ def submitProfile(event, context):
 
     try:
         res = dynamodb.put_item(
-                table_name=os.environ['DYNAMO_TABLE_NAME'],
-                Item=dynamo_item,
+                TableName=os.environ['DYNAMO_TABLE_NAME'],
+                Item=json.loads(dynamo_item),
                 ConditionExpression='attribute_not_exists(username)'
                 )
-    except: # V2: enhance cancel for different response
+    except Exception as e: # V2: enhance cancel for different response
+        print(e)
         response = {
             "statusCode": 502,
-            "body": {
+            "headers": {
+                "Content-Type": "application/json",
+            },
+            "body": json.dumps({
                 "message": "Something went wrong on our end"    
-            }
+            })
         }
     else:
         response = {
             "statusCode": 200,
-            "body": json.dumps(body)
+            "headers": {
+                "Content-Type": "application/json",
+            },
+            "body": json.dumps({
+                "message": "Profile successfully updated"    
+            })
         }
     
     return response
@@ -47,12 +56,12 @@ def submitProfile(event, context):
     Get user profile based on Id
 """
 def getProfile(event, context):
-    req_username = json.loads(event['queryStringParameters']['username'])
+    req_username = event['queryStringParameters']['username']
 
     try:
         res_dynamo = dynamodb.get_item(
-            table_name=os.environ['DYNAMO_TABLE_NAME'],
-            key={
+            TableName=os.environ['DYNAMO_TABLE_NAME'],
+            Key={
                     'username': {
                         'S': req_username
                     }
@@ -60,16 +69,23 @@ def getProfile(event, context):
             )
 
         res_body = dynamo_json.loads(res_dynamo['Item'])
-    except:
+    except Exception as e:
+        print(e)
         response = {
             "statusCode": 502,
-            "body": {
+            "headers": {
+                "Content-Type": "application/json",
+            },
+            "body": json.dumps({
                 "message": "Something went wrong on our end"    
-            }
+            })
         }
     else:
         response = {
             "statusCode": 200,
+            "headers": {
+                "Content-Type": "application/json",
+            },
             "body": json.dumps(res_body)
         }
 
@@ -92,17 +108,24 @@ def searchForProfile(event, context):
 
         res_body = []
         for hit in res['hits']['hits']:
-            res_body.append(hit)
-    except:
+            res_body.append(hit["_source"])
+    except Exception as e:
+        print(e)
         response = {
             "statusCode": 502,
-            "body": {
+            "headers": {
+                "Content-Type": "application/json",
+            },
+            "body": json.dumps({
                 "message": "Something went wrong on our end"    
-            }
+            })
         }
     else:
         response = {
             "statusCode": 200,
+            "headers": {
+                "Content-Type": "application/json",
+            },
             "body": json.dumps(res_body)
         }
 

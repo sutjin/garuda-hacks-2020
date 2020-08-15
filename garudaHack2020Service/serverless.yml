@@ -7,6 +7,8 @@ provider:
     stage: dev
     region: us-west-2
     environment:
+        #PATH: /var/task/bin
+        #PYTHONPATH: /var/task/package
         DYNAMO_TABLE_NAME: 
             Ref: GarudaHack2020Table
         ES_DOMAIN: https://9dhfzwk724:49bt6kh1nt@custom-kicks-sandbox-1191858573.us-west-2.bonsaisearch.net:443
@@ -36,7 +38,8 @@ functions:
                 path: profile
                 method: post
                 cors:
-                    origins: '*'
+                    origins: 
+                        - '*'
     getProfile:
         handler: handler.getProfile
         events:
@@ -44,7 +47,8 @@ functions:
                 path: profile
                 method: get
                 cors:
-                    origins: '*'
+                    origins: 
+                        - '*'
     searchProfile:
         handler: handler.searchForProfile
         events:
@@ -52,9 +56,12 @@ functions:
                 path: search
                 method: post
                 cors:
-                    origins: '*'
+                    origins: 
+                        - '*'
     crawlProfile:
         handler: hooks.crawlUserProfile
+        timeout: 60
+        memorySize: 256
 
 resources:
     Resources:

@@ -22,9 +22,9 @@ def crawlUserProfile(event, context):
     
     crawled_username = ins_crawler.get_user_profile(username)
     setattr(settings, "fetch_details", True)
-    crawled_media = ins_crawler.get_user_posts(username, number=10)
+    crawled_media = ins_crawler.get_user_posts(username, number=1)
 
-    caption = [] # timestamp is missing from crawl
+    captions = [] # timestamp is missing from crawl
     locations = []
 
     for post in crawled_media:
@@ -33,7 +33,7 @@ def crawlUserProfile(event, context):
             "text": post['description']
         })
 
-        if post["location"] and post["location"] not in locations:
+        if post.get("location") and post["location"] not in locations:
             locations.append(post["location"])
 
     payload = {
@@ -61,19 +61,10 @@ def updateDataResource(payload):
 
     dynamo_req = dynamo_json.dumps(payload)
 
-    res_dynamo = dynamodb.update_item(
-            table_name=os.environ['DYNAMO_TABLE_NAME'],
-            key={
-                    'username': {
-                        'S': payload['username']
-                    }
-                },
-            AttributeUpdates={
-                    'name': dynamo_req['name'],
-                    'desc': dynamo_req['desc'],
-                    'posts': dynamo_req['posts'],
-                    'locations': dynamo_req['locations']
-                }
+    res_dynamo = dynamodb.put_item(
+            #TableName=os.environ['DYNAMO_TABLE_NAME'],
+            TableName='garuda_hacks_2020_table',
+            Item=json.loads(dynamo_req)
             )
 
     res_es = es.index(index="garuda_hacks_2020", 
